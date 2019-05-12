@@ -1,8 +1,8 @@
-class Kids extends Human{
+class Kids extends Human {
 
     private AThing inHands;
-    Kids(String n, APlace p) {
-        super(n, p);
+    Kids(String n, APlace p, int a) {
+        super(n, p, a);
     }
 
     public void Speak(){

@@ -1,8 +1,8 @@
 class Adults extends Human{
 
     private AThing inHands;
-    Adults(String n, APlace p) {
-        super(n, p);
+    Adults(String n, APlace p, int a) {
+        super(n, p, a);
     }
 
     void Drink(AThing c){
