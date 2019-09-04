@@ -1,67 +1,62 @@
-
-import java.sql.SQLOutput;
-import java.util.Scanner;
+import java.io.IOException;
 
 public class Main {
 
+    private static final String SERVER_HOST = "localhost";
+    private static final int SERVER_PORT = 3456;
+    private static final int SERVER_THREAD_POOL_SIZE = 4;
+
     public static void main(String[] arguments) {
+
+        if (arguments.length != 1) {
+            System.out.println("Неверное число аргументов");
+            return;
+        }
+
+        switch (arguments[0]) {
+            case "client":
+                runClient();
+                break;
+            case "server":
+                runServer();
+                break;
+            default:
+                System.out.println("Неподдерживаемый тип запуска: " + arguments[0]);
+        }
+    }
+
+    private static void runClient(){
+
+        System.out.println("Приложение запущено в режиме клиента");
+
+        try {
+            Client client = new Client(SERVER_HOST, SERVER_PORT);
+            client.startSession();
+        }
+        catch (IOException e) {
+            System.out.println("Во время установки связи с клиентом произошла ошибка: " + e.getMessage());
+        }
+
+    }
+
+    private static void runServer() {
+
+        System.out.println("Приложение запущено в режиме сервера");
+
         // Создаем экземпляр коллекции
-        final HumanCollection collection = new HumanCollection("test.csv");
+        String fileName = System.getenv("CSVFILE");
+        if (fileName == null) {
+            System.out.println("Переменная среды, указывающая на файл, не найдена\nПроверьте переменные среды");
+            System.exit(0);
+        }
+
+        final HumanCollection collection = new HumanCollection(fileName);
         // Задаем действия при выходе (сохранение данных в файл)
         Runtime.getRuntime().addShutdownHook(new Thread(collection::saveToFile));
-        // Интерактивное меню программы
-        System.out.println("\nКлючи сравниваются как строки\nЗначения сравниваются по возрасту");
-        System.out.println("Введите команду:");
-        final Scanner sc = new Scanner(System.in);
-        while (true) {
-            System.out.print("> ");
-            String command = sc.nextLine();
-            String[] args = command.split("\\s");
-            switch (args[0]) {
-                case "info":
-                    collection.showInfo();
-                    break;
-                case "show":
-                    collection.showContents();
-                    break;
-                case "save":
-                    collection.saveToFile();
-                    break;
-                case "remove_greater_key":
-                    if (args.length != 2) {
-                        System.out.println("Неверное число аргументов");
-                        break;
-                    }
-                    collection.removeGreaterKeys(args[1]);
-                    break;
-                case "remove_lower":
-                    if (args.length != 2) {
-                        System.out.println("Неверное число аргументов");
-                        break;
-                    }
-                    collection.removeLower(args[1]);
-                    break;
-                case "insert":
-                    if (args.length != 3) {
-                        System.out.println("Неверное число аргументов");
-                        break;
-                    }
-                    collection.insert(args[1], args[2]);
-                    break;
-                case "remove":
-                    if (args.length != 2) {
-                        System.out.println("Неверное число аргументов");
-                        break;
-                    }
-                    collection.remove(args[1]);
-                    break;
-                case "quit":
-                case "exit":
-                    System.exit(0);
-                    break;
-                default:
-                    System.out.println("Неизвестная команда. Проверьте синтакисис!");
-            }
-        }
+        // Запускаем сторону сервера
+
+        SocketServer server = new SocketServer(collection, SERVER_HOST, SERVER_PORT, SERVER_THREAD_POOL_SIZE);
+        Thread serverThread = new Thread(server);
+        serverThread.start();
     }
 }

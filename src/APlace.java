@@ -1,10 +1,28 @@
 abstract class APlace {
+
     private String PlaceS;
-    APlace(String s) {
-        PlaceS = s;
+    private float latitude;
+    private float longitude;
+
+    public APlace() {
+
     }
 
-    String getPlace() {
+    public APlace(String placeS, float latitude, float longitude) {
+        PlaceS = placeS;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public String getPlace() {
         return PlaceS;
+    }
+
+    public float getLatitude() {
+        return latitude;
+    }
+
+    public float getLongitude() {
+        return longitude;
     }
 }

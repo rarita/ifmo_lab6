@@ -1,13 +1,16 @@
-import java.util.StringJoiner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 
-public class Human implements IHuman, IStandardFunc, ISerializable<Human>, Comparable<Human> {
+import java.util.StringJoiner;
+
+public class Human implements IHuman, IStandardFunc, Comparable<Human> {
     String Name;
     APlace place;
     int age;
+    private static final Gson gson = new GsonBuilder().registerTypeAdapter(APlace.class, new PlaceDeserializer()).create();
 
-    Human(String n, APlace p, int a) {
+    public Human(String n, APlace p, int a) {
         this.Name = n;
         this.place = p;
         this.age = a;
@@ -33,63 +36,71 @@ public class Human implements IHuman, IStandardFunc, ISerializable<Human>, Compa
     @Override
     public String toString() {
         try {
-            if (place==null) throw new ExistException();
+            if (place == null) throw new ExistException();
         } catch (ExistException e) {
             e.printStackTrace();
-            place = new Place("unknown");
+            place = new Place("unknown", 0F, 0F);
         } finally {
-            return Name + " of age " + age + " stays in that place " + place.getPlace();
+            return Name + " of age " + age + " stays in that place " + place.getPlace() +
+            " at coordinates " + place.getLatitude() + ";" + place.getLongitude();
         }
     }
-
-    private static String getJsonField(String source, String fieldName) {
-        final String pattern = "(?<=\"" + fieldName + "\").*?(?=(,|}))";
-        final Pattern regex = Pattern.compile(pattern);
-        final Matcher matcher = regex.matcher(source);
-        if (matcher.find()) {
-            return matcher.group()
-                    .replaceAll("(\"|:)", "")
-                    .trim();
-        }
-        else return null;
-    }
-
-    public static Human fromJson(String jsonObject) {
-        String name = getJsonField(jsonObject, "name");
-        APlace place = new Place(getJsonField(jsonObject, "place"));
-        Integer age = Integer.parseInt(getJsonField(jsonObject, "age"));
-        return new Human(name, place, age != null ? age : 0);
-    }
-
-    public String toJson() {
-        StringBuilder stringBuilder = new StringBuilder("{");
-        stringBuilder.append("\"name\":\"");
-        stringBuilder.append(this.getName() + "\",");
-        stringBuilder.append("\"place\":\"");
-        stringBuilder.append(this.place.getPlace() + "\",");
-        stringBuilder.append("\"age\":");
-        stringBuilder.append(this.age + "}");
-        return stringBuilder.toString();
-    }
-
 
     public static Human fromCSV(String[] csvContents) {
-        if (csvContents.length != 3)
-            throw new IllegalArgumentException("CSV data and object do not match");
-        return new Human(csvContents[0], new Place(csvContents[1]), Integer.parseInt(csvContents[2]));
+        if (csvContents.length != 5)
+            throw new IllegalArgumentException("Неверное число данных");
+        return new Human(csvContents[0],
+                        new Place(csvContents[1], Float.parseFloat(csvContents[2]), Float.parseFloat(csvContents[3])),
+                        Integer.parseInt(csvContents[4]));
     }
 
-    @Override
     public String toCSV() {
         StringJoiner stringJoiner = new StringJoiner(",");
         stringJoiner.add(this.getName());
         stringJoiner.add(this.place.getPlace());
+        stringJoiner.add(Float.toString(this.place.getLatitude()));
+        stringJoiner.add(Float.toString(this.place.getLongitude()));
         stringJoiner.add(Integer.toString(age));
         return stringJoiner.toString();
     }
 
-    public void walk(APlace h){
-        place = h;
+    public static Human fromJson(String jsonContents) {
+        return gson.fromJson(jsonContents, Human.class);
+    }
+
+    /**
+     * Получает ключ, под которым хранился объект из JSON элемента Map.Entry
+     * @param jsonElement Исходный JSON - элемент
+     * @return Ключ, находящийся в объекте
+     */
+    public static String keyFromJsonEntry(JsonElement jsonElement) {
+        return jsonElement.getAsJsonObject()
+                .keySet()
+                .stream()
+                .findFirst()
+                .get();
+    }
+
+    /**
+     * Возвращает объект Human, записанный в сериализованной Map.Entry
+     * @param jsonElement Исходный JSON - элемент
+     * @return Экземпляр класса Human, описывающий этот элемент
+     */
+    public static Human fromJsonEntry(JsonElement jsonElement) {
+        return jsonElement.getAsJsonObject()
+                .entrySet()
+                .stream()
+                .map(entry -> gson.fromJson(entry.getValue(), Human.class))
+                .findFirst()
+                .get();
+    }
+
+    public String toJson() {
+        return gson.toJson(this, this.getClass());
+    }
+
+    public void walk(APlace h) {
+        place = (APlace)h;
         System.out.println(Name + " walk " + place.getPlace());
     }
 
